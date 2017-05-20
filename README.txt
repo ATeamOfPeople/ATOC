@@ -1,5 +1,5 @@
 yo waddup this is rus, i wrote this. its lit.
-controls are somethin like arrow keys to move, 'g' to pick up stuff, 'i' for inventory, 'esc' to get outta menus n shit.
+controls are somethin like keypad to move, 'g' to pick up stuff, 'i' for inventory, 'esc' to get outta menus n shit.
 press the corresponding letter to an item while in your inventory to use said item.
 
 Items:
@@ -10,4 +10,10 @@ Scroll of Ligthning:
 Scroll of Confusion:
 	Confuses Nearest enemy for a few turns
 Roulette:
-	Heals for 1HP, but has a small chance to restore to full health.
+	Hurts for 2 HP, or 1/3 times will heal for full health
+
+Enemies:
+Orc:
+	Weak, low DMG, frequent enemy
+Troll:
+	Tanky, high DMG, slightly less frequent

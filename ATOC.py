@@ -46,9 +46,9 @@ FIREBALL_RADIUS = 3
 CONFUSE_NUM_TURNS = 10
 CONFUSE_RANGE = 8
 
-color_dark_ground = (10, 40, 10)
+color_dark_ground = (5, 35, 5)
 color_light_ground = (40, 70, 45)
-color_dark_wall = (90, 90, 90)
+color_dark_wall = (85, 85, 85)
 color_light_wall = (123, 122, 129)
 
 
@@ -304,7 +304,7 @@ def cast_lightning():
 
 def cast_confuse():
     message('Left-click an enemy to confuse it, or right-click to cancel.', colors.light_cyan)
-    monster = closest(CONFUSE_RANGE)
+    monster = closest_monster(CONFUSE_RANGE)
     if monster is None:
         message('Cancelled.')
         return 'cancelled'
@@ -695,17 +695,30 @@ def handle_keys():
 
     if game_state == 'playing':
         # movement keys
-        if user_input.keychar == 'UP':
+        if user_input.keychar == 'KP8':
             player_move_or_attack(0, -1)
 
-        elif user_input.keychar == 'DOWN':
+        elif user_input.keychar == 'KP7':
+            player_move_or_attack(-1, -1)
+
+        elif user_input.keychar == 'KP9':
+            player_move_or_attack(1, -1)
+
+        elif user_input.keychar == 'KP2':
             player_move_or_attack(0, 1)
 
-        elif user_input.keychar == 'LEFT':
+        elif user_input.keychar == 'KP4':
             player_move_or_attack(-1, 0)
 
-        elif user_input.keychar == 'RIGHT':
+        elif user_input.keychar == 'KP1':
+            player_move_or_attack(-1, 1)
+
+        elif user_input.keychar == 'KP3':
+            player_move_or_attack(1, 1)
+
+        elif user_input.keychar == 'KP6':
             player_move_or_attack(1, 0)
+
         else:
             if user_input.keychar == 'g':
                 for obj in objects:  # look for an item in the player's tile
