@@ -1,0 +1,10 @@
+TODO:
+
+Playtest Roulette
+	potentially change healing amounts
+
+Look at Droprates
+
+New Colorscheme
+
+BIG PROJECT: INTEGRATE DUNGEON LEVELS
