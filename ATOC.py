@@ -46,10 +46,10 @@ FIREBALL_RADIUS = 3
 CONFUSE_NUM_TURNS = 10
 CONFUSE_RANGE = 8
 
-color_dark_ground = (85, 75, 10)
-color_light_ground = (145, 135, 80)
+color_dark_ground = (10, 40, 10)
+color_light_ground = (40, 70, 45)
 color_dark_wall = (90, 90, 90)
-color_light_wall = (130, 130, 130)
+color_light_wall = (123, 122, 129)
 
 
 class Tile:
@@ -276,11 +276,11 @@ def cast_roulette():
         message('You are already at full health.', colors.red)
         return 'cancelled'
     message('You roll the dice!', colors.light_cyan)
-    roulette = randint(1,5)
+    roulette = randint(1,3)
     if roulette == 1:
         player.fighter.heal(player.fighter.max_hp)
     elif roulette >= 2:
-        player.fighter.heal(1)
+        player.fighter.heal(-2)
 
 def cast_heal():
     # heal the player
@@ -304,7 +304,7 @@ def cast_lightning():
 
 def cast_confuse():
     message('Left-click an enemy to confuse it, or right-click to cancel.', colors.light_cyan)
-    monster = target_monster(CONFUSE_RANGE)
+    monster = closest(CONFUSE_RANGE)
     if monster is None:
         message('Cancelled.')
         return 'cancelled'
@@ -333,21 +333,23 @@ def cast_fireball():
                 object.fighter.take_damage(FIREBALL_DAMAGE)
 """
 
-def target_tile(max_range = None):
+def target_tile(max_range=None):
+    # return the position of a tile left-clicked in player's FOV (optionally in
+    # a range), or (None,None) if right-clicked.
     global mouse_coord
-    global clicked
+
     clicked = False
     for event in tdl.event.get():
-        if event.type == 'MOUSEMOTION' and event.type == 'MOUSEDOWN' and event.button == 'LEFT':
+        if event.type == 'MOUSEMOTION':
             mouse_coord = event.cell
+        if event.type == 'MOUSEDOWN' and event.button == 'LEFT':
             clicked = True
-        #elif ((event.type == 'MOUSEDOWN' and event.button == 'RIGHT') or
-                    #(event.type == 'KEYDOWN' and event.key == 'ESCAPE')):
-            #return None, None
+        elif ((event.type == 'MOUSEDOWN' and event.button == 'RIGHT') or
+                  (event.type == 'KEYDOWN' and event.key == 'ESCAPE')):
+            return (None, None)
     render_all()
-    x = mouse_coord[0]
-    y = mouse_coord[1]
-    if clicked and mouse_coord in visible_tiles and (max_range is None or player.distance(x, y) <= max_range):
+
+    if clicked:
         return mouse_coord
 
 def closest_monster(max_range):
@@ -501,7 +503,7 @@ def place_objects(room):
                                             death_function=monster_death)
                 ai_component = BasicMonster()
 
-                monster = GameObject(x, y, 'o', 'orc', colors.desaturated_green,
+                monster = GameObject(x, y, 'o', 'orc', colors.desaturated_yellow,
                                      blocks=True, fighter=fighter_component, ai=ai_component)
             else:
                 # create a troll
@@ -540,8 +542,8 @@ def place_objects(room):
                 item_component = Item(use_function=cast_roulette)
                 item = GameObject(x, y, '%', 'roulette potion', colors.light_cyan, item=item_component)
 
-                objects.append(item)
-                item.send_to_back()    # items appear below other objects
+            objects.append(item)
+            item.send_to_back()    # items appear below other objects
 
 def render_bar(x, y, total_width, name, value, maximum, bar_color, back_color):
     # render a bar (HP, experience, etc). first calculate the width of the bar
