@@ -270,6 +270,18 @@ def target_monster(max_range=None):
             if object.x == x and object.y == y and object.fighter and object != player:
                 return object
 
+def cast_roulette():
+    #heal for 1 or somethimes for full
+    if player.fighter.hp == player.fighter.max_hp:
+        message('You are already at full health.', colors.red)
+        return 'cancelled'
+    message('You roll the dice!', colors.light_cyan)
+    roulette = randint(1,5)
+    if roulette == 1:
+        player.fighter.heal(player.fighter.max_hp)
+    elif roulette >= 2:
+        player.fighter.heal(1)
+
 def cast_heal():
     # heal the player
     if player.fighter.hp == player.fighter.max_hp:
@@ -302,6 +314,7 @@ def cast_confuse():
     monster.ai.owner = monster  # tell the new component who owns it
     message('The eyes of the ' + monster.name + ' look vacant, as he starts to stumble around!', colors.light_green)
 
+"""
 def cast_fireball():
     global mouse_coord
 
@@ -318,6 +331,7 @@ def cast_fireball():
             #if object.fighter:
                 message('The ' + object.name + ' gets burned for ' + str(FIREBALL_DAMAGE) + ' hit points.', colors.orange)
                 object.fighter.take_damage(FIREBALL_DAMAGE)
+"""
 
 def target_tile(max_range = None):
     global mouse_coord
@@ -510,24 +524,24 @@ def place_objects(room):
     # place if tile is not blocked
         if not is_blocked(x, y):
             dice = randint(0, 100)
-            if dice < 70:
+            if dice < 60:
                 # create a health potion (40% chance)
                 item_component = Item(use_function=cast_heal)
                 item = GameObject(x, y, '!', 'healing potion', colors.violet, item=item_component)
-            elif dice < 70+10:
+            elif dice < 60+10:
                 # create a lightning bolt scroll (20% chance)
                 item_component = Item(use_function=cast_lightning)
                 item = GameObject(x, y, '#', 'scroll of lightning bolt', colors.light_yellow, item=item_component)
-            elif dice < 70+10+10:
+            elif dice < 60+10+10:
                 # create a confuse scroll (20% chance)
                 item_component = Item(use_function=cast_confuse)
                 item = GameObject(x, y, '#', 'scroll of confusion', colors.light_yellow, item=item_component)
-            elif dice < 70+10+10+10:
-                item_component = Item(use_function=cast_fireball)
-                item = GameObject(x, y, '#', 'scroll of fireball', colors.light_yellow, item=item_component)
+            elif dice < 60+10+10+10+10:
+                item_component = Item(use_function=cast_roulette)
+                item = GameObject(x, y, '%', 'roulette potion', colors.light_cyan, item=item_component)
 
-            objects.append(item)
-            item.send_to_back()    # items appear below other objects
+                objects.append(item)
+                item.send_to_back()    # items appear below other objects
 
 def render_bar(x, y, total_width, name, value, maximum, bar_color, back_color):
     # render a bar (HP, experience, etc). first calculate the width of the bar
