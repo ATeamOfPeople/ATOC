@@ -419,7 +419,7 @@ def is_visible_tile(x, y):
 
 
 def make_map():
-    global my_map
+    global my_map, objects
 
     # fill map with "blocked" tiles
     my_map = [[Tile(True)
@@ -484,6 +484,8 @@ def make_map():
             # finally, append the new room to the list
             rooms.append(new_room)
             num_rooms += 1
+
+    objects = [player]
 
 
 def place_objects(room):
@@ -806,6 +808,91 @@ def inventory_menu(header):
 
     if index is None or len(inventory) == 0: return None
     return inventory[index].item
+
+def save_game():
+    import shelve
+    # open a new empty shelve (possibly overwriting old one) to write the game data
+    file = shelve.open('savegame', 'n')
+    file['map'] = map
+    file['objects'] = objects
+    file['player_index'] = object.index(player) # index of player objects in list
+    file['inventory'] = inventory
+    file['game_msgs'] = game_msgs
+    file['game_state'] = game_state
+    file.close()
+
+def new_game():
+    global player, inventory, game_msgs, game_state
+
+    # create player
+    fighter_component = Fighter(hp=30, defense=2, power=5)
+    player = GameObject(0, 0, '@', 'player', colors.white, blocks=True, fighter=fighter_component)
+
+    make_map()
+
+    initialize_fov()
+
+    game_state = 'playing'
+    inventory = []
+
+    game_msgs = []
+
+    message('Welcome traveler, prepare to get rekt in the Dungeons of Gemma!', colors.red)
+
+def initialize_fov():
+    global fov_recompute, fov_map
+    fov_recompute = True
+"""
+    fov_map = tdl.map.Map(MAP_WIDTH, MAP_HEIGHT)
+    for y in range(MAP_HEIGHT):
+        for x in range(MAP_WIDTH):
+            tdl.map.Map(fov_map, x, y, not map[x][y].block_sight, not map[x][y].blocked)
+"""
+def play_game():
+    global key, mouse
+
+    player_action = None
+
+    key = tdl.event.get()
+    while not tdl.event.is_window_closed():
+        #tdl.sys_check_for_event(tdl.EVENT_KEY_PRESS|tdl.EVENT_MOUSE, key.mouse)
+        render_all()
+
+        tdl.flush()
+
+        for object in objects:
+            object.clear()
+
+        player_action = handle = handle_keys()
+        if player_action == 'exit':
+            break
+
+        if game_state == 'playing' and player_action != 'didnt-take-turn':
+            for object in objects:
+                if object.ai:
+                    object.ai.take_turn()
+
+def main_menu():
+
+    """
+    img = tdl.blit('menu_background.png')
+
+    tdl.console_set_default_foreground(0, tdl.light_yellow)
+    """
+    panel.draw_str(SCREEN_WIDTH//2, PANEL_HEIGHT//2-4, 'A TEAM OF CRAWL', bg=None)
+    panel.draw_str(SCREEN_WIDTH//2, PANEL_HEIGHT-2, 'A Team Of People', bg=None)
+
+    while not tdl.event.is_window_closed():
+        # tdl.image_blit_2x(img, 0, 0, 0)
+
+        choice = menu('', ['Play a new game', 'Continue last game', 'Quit'], 24)
+
+        if choice == 0:
+            new_game()
+            play_game()
+        elif choice == 2:
+            break
+
 #############################################
 # Initialization & Main Loop                #
 #############################################
@@ -819,29 +906,14 @@ panel = tdl.Console(SCREEN_WIDTH, PANEL_HEIGHT)
 # create object representing the player
 fighter_component = Fighter(hp=30, defense=2, power=5, death_function=player_death)
 player = GameObject(0, 0, '@', 'player', colors.white, blocks=True, fighter=fighter_component)
-
-inventory = []
-
-# the list of objects with those two
-objects = [player]
-
-# generate map (at this point it's not drawn to the screen)
-make_map()
+mouse_coord = (0, 0)
+tdl.setFPS(LIMIT_FPS)
 
 fov_recompute = True
-game_state = 'playing'
 player_action = None
+objects = [player]
 
-# create the list of game messages and their colors, starts empty
-game_msgs = []
-
-# a warm welcoming message!
-message('Welcome traveler! Prepare to perish in the Dungeons of Gemma.',
-        colors.red)
-
-mouse_coord = (0, 0)
-
-tdl.setFPS(LIMIT_FPS)
+main_menu()
 
 while not tdl.event.is_window_closed():
     global user_input
@@ -865,3 +937,6 @@ while not tdl.event.is_window_closed():
         for object in objects:
             if object.ai:
                 object.ai.take_turn()
+
+
+
