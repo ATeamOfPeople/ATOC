@@ -1,7 +1,11 @@
 A Team of Crawl
 	by A Team of People
 
-This is a pre-alpha roguelike. very very pre alpha. it needs work.
+This is a pre-alpha roguelike. very very pre alpha. It's currently broken
+and I can't figure out why :(.
+
+Originally developed alongside of a guide, but has quickly turned into
+a creation of my own.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Defense? Power? What lol?
