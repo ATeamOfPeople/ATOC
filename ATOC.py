@@ -35,21 +35,27 @@ LIMIT_FPS = 20  # 20 frames-per-second maximum
 
 INVENTORY_WIDTH = 50
 
-HEAL_AMOUNT = 4
+HEAL_AMOUNT = randint(2, 6)
 
 LIGHTNING_DAMAGE = 20
 LIGHTNING_RANGE = 5
 
-FIREBALL_DAMAGE = 12
-FIREBALL_RADIUS = 3
-
 CONFUSE_NUM_TURNS = 10
 CONFUSE_RANGE = 8
+
+LEVEL_UP_BASE = 200
+LEVEL_UP_FACTOR = 150
+LEVEL_SCREEN_WIDTH = 40
+
+CHARACTER_SCREEN_WIDTH = 40
 
 color_dark_ground = (5, 35, 5)
 color_light_ground = (40, 70, 45)
 color_dark_wall = (85, 85, 85)
 color_light_wall = (123, 122, 129)
+
+monster_chances = {'orc': 80, 'troll': 20}
+item_chances = {'heal': 55, 'lightning': 15, 'confuse': 15, 'roulette': 15}
 
 
 class Tile:
@@ -155,15 +161,15 @@ class GameObject:
     def distance(self, x, y):
         return math.sqrt((x - self.x) ** 2 + (y - self.y) ** 2)
 
-
 class Fighter:
     # combat-related properties and methods (monster, player, NPC).
-    def __init__(self, hp, defense, power, death_function=None):
+    def __init__(self, hp, defense, power, xp, death_function=None):
         self.max_hp = hp
         self.hp = hp
         self.defense = defense
         self.power = power
         self.death_function = death_function
+        self.xp = xp
 
     def take_damage(self, damage):
         # apply damage if possible
@@ -175,6 +181,8 @@ class Fighter:
                 function = self.death_function
                 if function is not None:
                     function(self.owner)
+                if self.owner != player:
+                    player.fighter.xp += self.xp
 
     def attack(self, target):
         # a simple formula for attack damage
@@ -194,7 +202,6 @@ class Fighter:
         self.hp += amount
         if self.hp > self.max_hp:
             self.hp = self.max_hp
-
 
 class BasicMonster:
     # AI for a basic monster.
@@ -314,24 +321,6 @@ def cast_confuse():
     monster.ai.owner = monster  # tell the new component who owns it
     message('The eyes of the ' + monster.name + ' look vacant, as he starts to stumble around!', colors.light_green)
 
-"""
-def cast_fireball():
-    global mouse_coord
-
-    message('Left-click a target tile for the fireball, or right-click to cancel.', colors.light_cyan)
-    (x, y) = mouse_coord
-    if x is None:
-        message('Cancelled')
-        return 'cancelled'
-    if tdl.event.get():
-        message('The fireball explodes, burning everything within ' + str(FIREBALL_RADIUS) + ' tiles!', colors.orange)
-
-        for object in objects:
-            if object.distance(x, y) <= FIREBALL_RADIUS and object.fighter:
-            #if object.fighter:
-                message('The ' + object.name + ' gets burned for ' + str(FIREBALL_DAMAGE) + ' hit points.', colors.orange)
-                object.fighter.take_damage(FIREBALL_DAMAGE)
-"""
 
 def target_tile(max_range=None):
     # return the position of a tile left-clicked in player's FOV (optionally in
@@ -419,7 +408,7 @@ def is_visible_tile(x, y):
 
 
 def make_map():
-    global my_map, objects
+    global my_map, objects, stairs
 
     # fill map with "blocked" tiles
     my_map = [[Tile(True)
@@ -485,6 +474,9 @@ def make_map():
             # finally, append the new room to the list
             rooms.append(new_room)
             num_rooms += 1
+    stairs = GameObject(new_x, new_y, '>', 'stairs', colors.white)
+    objects.append(stairs)
+    stairs.send_to_back()
 
 def place_objects(room):
     # choose random number of monsters
@@ -499,7 +491,7 @@ def place_objects(room):
         if not is_blocked(x, y):
             if randint(0, 100) < 80:  # 80% chance of getting an orc
                 # create an orc
-                fighter_component = Fighter(hp=10, defense=0, power=3,
+                fighter_component = Fighter(hp=10, defense=0, power=3, xp=15,
                                             death_function=monster_death)
                 ai_component = BasicMonster()
 
@@ -507,7 +499,7 @@ def place_objects(room):
                                      blocks=True, fighter=fighter_component, ai=ai_component)
             else:
                 # create a troll
-                fighter_component = Fighter(hp=16, defense=1, power=4,
+                fighter_component = Fighter(hp=16, defense=1, power=4, xp=40,
                                             death_function=monster_death)
                 ai_component = BasicMonster()
 
@@ -547,6 +539,7 @@ def place_objects(room):
 
 def render_bar(x, y, total_width, name, value, maximum, bar_color, back_color):
     # render a bar (HP, experience, etc). first calculate the width of the bar
+    level_up_xp = LEVEL_UP_BASE + player.level * LEVEL_UP_FACTOR
     bar_width = int(float(value) / maximum * total_width)
 
     # render the background first
@@ -557,9 +550,11 @@ def render_bar(x, y, total_width, name, value, maximum, bar_color, back_color):
         panel.draw_rect(x, y, bar_width, 1, None, bg=bar_color)
 
     # finally, some centered text with the values
-    text = name + ': ' + str(value) + '/' + str(maximum)
-    x_centered = x + (total_width - len(text)) // 2
-    panel.draw_str(x_centered, y, text, fg=colors.white, bg=None)
+    xp_text = 'XP: ' + str(player.fighter.xp) + '/' + str(level_up_xp)
+    hp_text = name + ': ' + str(value) + '/' + str(maximum)
+    x_centered = x + (total_width - len(hp_text)) // 2
+    panel.draw_str(x_centered, y, hp_text, fg=colors.white, bg=None)
+    #panel.draw_str(x_centered, y+1, xp_text, fg=colors.white, bg=None)
 
 
 def get_names_under_mouse():
@@ -576,7 +571,7 @@ def get_names_under_mouse():
 
 
 def render_all():
-    global fov_recompute
+    global fov_recompute, dungeon_level, stairs
     global visible_tiles
 
     if fov_recompute:
@@ -624,9 +619,14 @@ def render_all():
         panel.draw_str(MSG_X, y, line, bg=None, fg=color)
         y += 1
 
+    level_up_xp = LEVEL_UP_BASE + player.level * LEVEL_UP_FACTOR
+
     # show the player's stats
     render_bar(1, 1, BAR_WIDTH, 'HP', player.fighter.hp, player.fighter.max_hp,
                colors.light_red, colors.darker_red)
+    render_bar(1, 3, BAR_WIDTH, 'XP', player.fighter.xp, level_up_xp, colors.orange, colors.desaturated_yellow)
+
+    panel.draw_str(1, 0, "Dungeon Level:" + ' ' + str(dungeon_level), bg=None, fg=colors.light_grey)
 
     # display names of objects under the mouse
     panel.draw_str(1, 0, get_names_under_mouse(), bg=None, fg=colors.light_gray)
@@ -670,8 +670,8 @@ def player_move_or_attack(dx, dy):
         fov_recompute = True
 
 def handle_keys():
-    global playerx, playery
-    global fov_recompute
+    global playerx, playery, dungeon_level, stairs
+    global fov_recompute, level_up_xp
     global mouse_coord
 
     keypress = False
@@ -735,7 +735,27 @@ def handle_keys():
                                              ' drop it, or any other to cancel.\n')
                 if chosen_item is not None:
                     chosen_item.drop()
+            if user_input.keychar == '.':
+                if stairs.x == player.x and stairs.y == player.y:
+                    next_level()
+            if user_input.keychar == 'c':
+                check_level_up()
+                level_up_xp = LEVEL_UP_BASE + player.level * LEVEL_UP_FACTOR
+                msgbox('Character Information\n\nLevel: ' + str(player.level) + "\nExperience: " +
+                       str(player.fighter.xp) + '\nExperience to level up: ' + str(level_up_xp) + '\n\nMaximum HP: ' +
+                       str(player.fighter.max_hp) + '\nAttack: ' + str(player.fighter.power) + '\nDefense: ' +
+                       str(player.fighter.defense), CHARACTER_SCREEN_WIDTH)
 
+def next_level():
+    global dungeon_level
+
+    message('You take a moment rest, and recover your strength.', colors.light_violet)
+    player.fighter.heal(player.fighter.max_hp // 2)
+
+    message('After a rare moment of peace, you descend deeper into the heart of the dungeon...', colors.red)
+    dungeon_level += 1
+    make_map()
+    initialize_fov()
 
 def player_death(player):
     # the game ended!
@@ -750,7 +770,7 @@ def player_death(player):
 def monster_death(monster):
     # transform it into a nasty corpse! it doesn't block, can't be
     # attacked and doesn't move
-    message(monster.name.capitalize() + ' is dead!', colors.orange)
+    message(monster.name.capitalize() + ' is dead! You gain ' + str(monster.fighter.xp) + ' experience points.', colors.orange)
     monster.char = '%'
     monster.color = colors.dark_red
     monster.blocks = False
@@ -758,6 +778,7 @@ def monster_death(monster):
     monster.ai = None
     monster.name = 'remains of ' + monster.name
     monster.send_to_back()
+
 
 def menu(header, options, width):
     if len(options) > 26: raise ValueError('cannot have a menu with more than 26 options.')
@@ -808,7 +829,7 @@ def inventory_menu(header):
     return inventory[index].item
 
 def save_game():
-    global object
+    global object, dungeon_level
     import shelve
     # open a new empty shelve (possibly overwriting old one) to write the game data
     file = shelve.open('savegame', 'n')
@@ -818,14 +839,20 @@ def save_game():
     file['inventory'] = inventory
     file['game_msgs'] = game_msgs
     file['game_state'] = game_state
+    file['stairs_index'] = objects.index(stairs)
+    file['dungeon_level'] = dungeon_level
     file.close()
-
+    
 def new_game():
-    global player, inventory, game_msgs, game_state, fighter_component
+    global player, inventory, game_msgs, game_state, fighter_component, dungeon_level, xp
 
     # create player
-    fighter_component = Fighter(hp=30, defense=2, power=5, death_function=player_death)
+    fighter_component = Fighter(hp=30, defense=2, power=5, xp=0, death_function=player_death)
     player = GameObject(0, 0, '@', 'player', colors.white, blocks=True, fighter=fighter_component)
+
+    player.level = 1
+
+    dungeon_level = 1
 
     make_map()
 
@@ -900,7 +927,7 @@ def main_menu():
 
 def load_game():
     import shelve
-    global my_map, objects, player, inventory, game_msgs, game_state, object
+    global my_map, objects, player, inventory, game_msgs, game_state, object, stairs, dungeon_level
 
     file = shelve.open('savegame', 'r')
     my_map = file['map']
@@ -909,12 +936,37 @@ def load_game():
     inventory = file['inventory']
     game_msgs = file['game_msgs']
     game_state = file['game_state']
+    stairs = objects[file['stairs_index']]
+    dungeon_level = file['dungeon_level']
     file.close()
 
     initialize_fov()
 
 def msgbox(text, width=50):
     menu(text, [], width)
+
+def check_level_up():
+    global level_up_xp
+    level_up_xp = LEVEL_UP_BASE + player.level * LEVEL_UP_FACTOR
+    if player.fighter.xp >= level_up_xp:
+        player.level += 1
+        player.fighter.xp -= level_up_xp
+        message('Your battle skills grow stronger! You reached level ' + str(player.level) + '!', colors.yellow)
+
+        choice = None
+        while choice == None:
+            choice = menu('Level up! Choose a stat to raise:\n',
+                          ['Constitution (+20 HP, from ' + str(player.fighter.max_hp) + ')',
+                           'Strength (+1 attack, from ' + str(player.fighter.power) + ')',
+                           'Agility (+1 defense, from ' + str(player.fighter.defense) + ')'], LEVEL_SCREEN_WIDTH)
+
+        if choice == 0:
+            player.fighter.max_hp += 20
+            player.fighter.hp += 20
+        elif choice == 1:
+            player.fighter.power += 1
+        elif choice == 2:
+            player.figther.defense +=1
 
 #############################################
 # Initialization & Main Loop                #
@@ -927,7 +979,7 @@ con = tdl.Console(MAP_WIDTH, MAP_HEIGHT)
 panel = tdl.Console(SCREEN_WIDTH, PANEL_HEIGHT)
 
 # create object representing the player
-fighter_component = Fighter(hp=30, defense=2, power=5, death_function=player_death)
+fighter_component = Fighter(hp=30, defense=2, power=5, xp=0, death_function=player_death)
 player = GameObject(0, 0, '@', 'player', colors.white, blocks=True, fighter=fighter_component)
 mouse_coord = (0, 0)
 tdl.setFPS(LIMIT_FPS)
