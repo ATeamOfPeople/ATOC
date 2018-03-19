@@ -427,7 +427,6 @@ def make_map():
               for x in range(MAP_WIDTH)]
 
     rooms = []
-    objects = [player]
     num_rooms = 0
 
     for r in range(MAX_ROOMS):
@@ -486,6 +485,9 @@ def make_map():
             rooms.append(new_room)
             num_rooms += 1
 
+    objects = [player]
+
+
 def place_objects(room):
     # choose random number of monsters
     num_monsters = randint(0, MAX_ROOM_MONSTERS)
@@ -529,18 +531,18 @@ def place_objects(room):
             if dice < 60:
                 # create a health potion (40% chance)
                 item_component = Item(use_function=cast_heal)
-                item = GameObject(x, y, '!', 'healing potion', colors.darker_red, item=item_component)
+                item = GameObject(x, y, '!', 'healing potion', colors.violet, item=item_component)
             elif dice < 60+10:
                 # create a lightning bolt scroll (20% chance)
                 item_component = Item(use_function=cast_lightning)
-                item = GameObject(x, y, '#', 'scroll of lightning bolt', colors.light_cyan, item=item_component)
+                item = GameObject(x, y, '#', 'scroll of lightning bolt', colors.light_yellow, item=item_component)
             elif dice < 60+10+10:
                 # create a confuse scroll (20% chance)
                 item_component = Item(use_function=cast_confuse)
                 item = GameObject(x, y, '#', 'scroll of confusion', colors.light_yellow, item=item_component)
             elif dice < 60+10+10+10+10:
                 item_component = Item(use_function=cast_roulette)
-                item = GameObject(x, y, '%', 'roulette potion', colors.light_violet, item=item_component)
+                item = GameObject(x, y, '%', 'roulette potion', colors.light_cyan, item=item_component)
 
             objects.append(item)
             item.send_to_back()    # items appear below other objects
@@ -581,7 +583,7 @@ def render_all():
 
     if fov_recompute:
         fov_recompute = False
-        visible_tiles = tdl.map.quick_fov(player.x, player.y,
+        visible_tiles = tdl.map.quickFOV(player.x, player.y,
                                          is_visible_tile,
                                          fov=FOV_ALGO,
                                          radius=TORCH_RADIUS,
@@ -808,23 +810,22 @@ def inventory_menu(header):
     return inventory[index].item
 
 def save_game():
-    global object
     import shelve
     # open a new empty shelve (possibly overwriting old one) to write the game data
     file = shelve.open('savegame', 'n')
-    file['map'] = my_map
+    file['map'] = map
     file['objects'] = objects
-    file['player_index'] = objects.index(player) # index of player objects in list
+    file['player_index'] = object.index(player) # index of player objects in list
     file['inventory'] = inventory
     file['game_msgs'] = game_msgs
     file['game_state'] = game_state
     file.close()
 
 def new_game():
-    global player, inventory, game_msgs, game_state, fighter_component
+    global player, inventory, game_msgs, game_state
 
     # create player
-    fighter_component = Fighter(hp=30, defense=2, power=5, death_function=player_death)
+    fighter_component = Fighter(hp=30, defense=2, power=5)
     player = GameObject(0, 0, '@', 'player', colors.white, blocks=True, fighter=fighter_component)
 
     make_map()
@@ -841,19 +842,22 @@ def new_game():
 def initialize_fov():
     global fov_recompute, fov_map
     fov_recompute = True
-
-    con.clear()
-
+"""
+    fov_map = tdl.map.Map(MAP_WIDTH, MAP_HEIGHT)
+    for y in range(MAP_HEIGHT):
+        for x in range(MAP_WIDTH):
+            tdl.map.Map(fov_map, x, y, not map[x][y].block_sight, not map[x][y].blocked)
+"""
 def play_game():
-    global key, mouse, object
+    global key, mouse
 
     player_action = None
 
     key = tdl.event.get()
     while not tdl.event.is_window_closed():
-        # tdl.sys_check_for_event(tdl.EVENT_KEY_PRESS|tdl.EVENT_MOUSE, key.mouse)
-        tdl.event.get()
+        #tdl.sys_check_for_event(tdl.EVENT_KEY_PRESS|tdl.EVENT_MOUSE, key.mouse)
         render_all()
+
         tdl.flush()
 
         for object in objects:
@@ -861,7 +865,6 @@ def play_game():
 
         player_action = handle = handle_keys()
         if player_action == 'exit':
-            save_game()
             break
 
         if game_state == 'playing' and player_action != 'didnt-take-turn':
@@ -887,34 +890,8 @@ def main_menu():
         if choice == 0:
             new_game()
             play_game()
-        elif choice == 1:
-            try:
-                load_game()
-            except:
-                msgbox('\n No saved game to load. \n', 24)
-                continue
-            play_game()
-
         elif choice == 2:
             break
-
-def load_game():
-    import shelve
-    global my_map, objects, player, inventory, game_msgs, game_state, object
-
-    file = shelve.open('savegame', 'r')
-    my_map = file['map']
-    objects = file['objects']
-    player = objects[file['player_index']]
-    inventory = file['inventory']
-    game_msgs = file['game_msgs']
-    game_state = file['game_state']
-    file.close()
-
-    initialize_fov()
-
-def msgbox(text, width=50):
-    menu(text, [], width)
 
 #############################################
 # Initialization & Main Loop                #
@@ -933,9 +910,33 @@ mouse_coord = (0, 0)
 tdl.setFPS(LIMIT_FPS)
 
 fov_recompute = True
+player_action = None
 objects = [player]
 
 main_menu()
+
+while not tdl.event.is_window_closed():
+    global user_input
+
+    # draw all objects in the list
+    render_all()
+
+    tdl.flush()
+
+    # erase all objects at their old locations, before they move
+    for object in objects:
+        object.clear()
+
+    # handle keys and exit game if needed
+    player_action = handle_keys()
+    if player_action == 'exit':
+        break
+
+    # let monsters take their turn
+    if game_state == 'playing' and player_action != 'didnt-take-turn':
+        for object in objects:
+            if object.ai:
+                object.ai.take_turn()
 
 
 
