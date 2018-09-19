@@ -211,6 +211,27 @@ class BasicMonster:
             elif player.fighter.hp > 0:
                 monster.fighter.attack(player)
 
+class ChargingMonster:
+    # AI for a basic monster.
+    def take_turn(self):
+        i = 0
+        i += 1
+        # a basic monster takes its turn. If you can see it, it can see you
+        monster = self.owner
+        if (monster.x, monster.y) in visible_tiles:
+
+            # move towards player if far away
+            if monster.distance_to(player) >= 2:
+                if i % 5 == 0:
+                    monster.move_towards(player.x, player.y)
+                    monster.move_towards(player.x, player.y)
+                else:
+                    monster.move_towards(player.x, player.y)
+
+            # close enough, attack! (if the player is still alive.)
+            elif player.fighter.hp > 0:
+                monster.fighter.attack(player)
+
 class Item:
     def __init__(self, use_function=None):
         self.use_function = use_function
@@ -497,24 +518,33 @@ def place_objects(room):
 
         # only place it if the tile is not blocked
         if not is_blocked(x, y):
-            if randint(0, 100) < 80:  # 80% chance of getting an orc
+            if randint(0, 100) < 40:  # 80% chance of getting an orc
                 # create an orc
-                fighter_component = Fighter(hp=10, defense=0, power=3,
+                fighter_component = Fighter(hp=10, defense=1, power=3,
                                             death_function=monster_death)
                 ai_component = BasicMonster()
 
                 monster = GameObject(x, y, 'o', 'orc', colors.desaturated_yellow,
                                      blocks=True, fighter=fighter_component, ai=ai_component)
-            else:
+            elif randint(0, 100) < 80:
                 # create a troll
-                fighter_component = Fighter(hp=16, defense=1, power=4,
+                fighter_component = Fighter(hp=16, defense=2, power=4,
                                             death_function=monster_death)
                 ai_component = BasicMonster()
 
                 monster = GameObject(x, y, 'T', 'troll', colors.darker_green,
                                      blocks=True, fighter=fighter_component, ai=ai_component)
 
-            objects.append(monster)
+            elif randint(0, 100) < 80:
+                # create a minotaur
+                fighter_component = Fighter(hp=8, defense=0, power=5,
+                                            death_function=monster_death)
+                ai_component = ChargingMonster()
+
+                monster = GameObject(x, y, 'M', 'minotaur', colors.darker_yellow,
+                                     blocks=True, fighter=fighter_component, ai=ai_component)
+
+        objects.append(monster)
 
     num_items = randint(0, MAX_ROOM_ITEMS)
 
