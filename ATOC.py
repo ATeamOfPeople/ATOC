@@ -214,19 +214,15 @@ class BasicMonster:
 class ChargingMonster:
     # AI for a basic monster.
     def take_turn(self):
-        i = 0
-        i += 1
+
         # a basic monster takes its turn. If you can see it, it can see you
         monster = self.owner
         if (monster.x, monster.y) in visible_tiles:
 
             # move towards player if far away
             if monster.distance_to(player) >= 2:
-                if i % 5 == 0:
-                    monster.move_towards(player.x, player.y)
-                    monster.move_towards(player.x, player.y)
-                else:
-                    monster.move_towards(player.x, player.y)
+                monster.move_towards(player.x, player.y)
+                monster.move_towards(player.x, player.y)
 
             # close enough, attack! (if the player is still alive.)
             elif player.fighter.hp > 0:
@@ -526,9 +522,9 @@ def place_objects(room):
 
                 monster = GameObject(x, y, 'o', 'orc', colors.desaturated_yellow,
                                      blocks=True, fighter=fighter_component, ai=ai_component)
-            elif randint(0, 100) < 80:
+            elif randint(0, 100) < 60:
                 # create a troll
-                fighter_component = Fighter(hp=16, defense=2, power=4,
+                fighter_component = Fighter(hp=14, defense=2, power=4,
                                             death_function=monster_death)
                 ai_component = BasicMonster()
 
@@ -537,7 +533,7 @@ def place_objects(room):
 
             elif randint(0, 100) < 80:
                 # create a minotaur
-                fighter_component = Fighter(hp=8, defense=0, power=5,
+                fighter_component = Fighter(hp=7, defense=0, power=6,
                                             death_function=monster_death)
                 ai_component = ChargingMonster()
 
@@ -725,7 +721,7 @@ def handle_keys():
 
     if game_state == 'playing':
         # movement keys
-        if user_input.keychar == 'KP8':
+        if user_input.keychar == 'w':
             player_move_or_attack(0, -1)
 
         elif user_input.keychar == 'KP7':
@@ -734,10 +730,10 @@ def handle_keys():
         elif user_input.keychar == 'KP9':
             player_move_or_attack(1, -1)
 
-        elif user_input.keychar == 'KP2':
+        elif user_input.keychar == 's':
             player_move_or_attack(0, 1)
 
-        elif user_input.keychar == 'KP4':
+        elif user_input.keychar == 'a':
             player_move_or_attack(-1, 0)
 
         elif user_input.keychar == 'KP1':
@@ -746,7 +742,7 @@ def handle_keys():
         elif user_input.keychar == 'KP3':
             player_move_or_attack(1, 1)
 
-        elif user_input.keychar == 'KP6':
+        elif user_input.keychar == 'd':
             player_move_or_attack(1, 0)
 
         else:
