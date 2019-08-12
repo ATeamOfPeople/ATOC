@@ -4,6 +4,8 @@ import colors
 import math
 import textwrap
 
+turnCount=0
+
 # actual size of the window
 SCREEN_WIDTH = 80
 SCREEN_HEIGHT = 50
@@ -35,7 +37,7 @@ LIMIT_FPS = 20  # 20 frames-per-second maximum
 
 INVENTORY_WIDTH = 50
 
-HEAL_AMOUNT = randint(2, 6)
+HEAL_AMOUNT = randint(6, 10)
 
 LIGHTNING_DAMAGE = 20
 LIGHTNING_RANGE = 5
@@ -44,7 +46,7 @@ CONFUSE_NUM_TURNS = 10
 CONFUSE_RANGE = 8
 
 LEVEL_UP_BASE = 200
-LEVEL_UP_FACTOR = 150
+LEVEL_UP_FACTOR = 100
 LEVEL_SCREEN_WIDTH = 40
 
 CHARACTER_SCREEN_WIDTH = 40
@@ -163,13 +165,14 @@ class GameObject:
 
 class Fighter:
     # combat-related properties and methods (monster, player, NPC).
-    def __init__(self, hp, defense, power, xp, death_function=None):
+    def __init__(self, hp, defense, power, xp, death_function=None, health_color=None):
         self.max_hp = hp
         self.hp = hp
         self.defense = defense
         self.power = power
         self.death_function = death_function
         self.xp = xp
+        self.health_color = health_color
 
     def take_damage(self, damage):
         # apply damage if possible
@@ -183,6 +186,11 @@ class Fighter:
                     function(self.owner)
                 if self.owner != player:
                     player.fighter.xp += self.xp
+
+            elif self.hp <= self.hp / 2:
+                function = self.health_color
+                if function is not None:
+                    function(self.owner)
 
     def attack(self, target):
         # a simple formula for attack damage
@@ -479,6 +487,7 @@ def make_map():
     stairs.send_to_back()
 
 def place_objects(room):
+    global health_color
     # choose random number of monsters
     num_monsters = randint(0, MAX_ROOM_MONSTERS)
 
@@ -489,22 +498,67 @@ def place_objects(room):
 
         # only place it if the tile is not blocked
         if not is_blocked(x, y):
-            if randint(0, 100) < 80:  # 80% chance of getting an orc
-                # create an orc
-                fighter_component = Fighter(hp=10, defense=0, power=3, xp=15,
-                                            death_function=monster_death)
-                ai_component = BasicMonster()
+            if dungeon_level <= 3:
+                if randint(0, 100) < 80:  # 80% chance of getting a rat
+                    # create a rat
+                    fighter_component = Fighter(hp=5, defense=0, power=randint(2, 4), xp=5,
+                                                death_function=monster_death, health_color=health_color)
+                    ai_component = BasicMonster()
 
-                monster = GameObject(x, y, 'o', 'orc', colors.desaturated_yellow,
-                                     blocks=True, fighter=fighter_component, ai=ai_component)
-            else:
-                # create a troll
-                fighter_component = Fighter(hp=16, defense=1, power=4, xp=40,
-                                            death_function=monster_death)
-                ai_component = BasicMonster()
+                    monster = GameObject(x, y, 'r', 'rat', colors.light_grey,
+                                        blocks=True, fighter=fighter_component, ai=ai_component)
+                else:
+                    # create an orc
+                    fighter_component = Fighter(hp=12, defense=0, power=randint(4, 6), xp=20,
+                                                death_function=monster_death, health_color=health_color)
+                    ai_component = BasicMonster()
 
-                monster = GameObject(x, y, 'T', 'troll', colors.darker_green,
-                                     blocks=True, fighter=fighter_component, ai=ai_component)
+                    monster = GameObject(x, y, 'o', 'orc', colors.desaturated_yellow,
+                                        blocks=True, fighter=fighter_component, ai=ai_component)
+            elif dungeon_level > 3:
+                if randint(0, 100) < 80:  # 80% chance of getting an orc
+                    # create an orc
+                    fighter_component = Fighter(hp=12, defense=0, power=randint(4, 6), xp=20,
+                                                death_function=monster_death, health_color=health_color)
+                    ai_component = BasicMonster()
+
+                    monster = GameObject(x, y, 'o', 'orc', colors.desaturated_yellow,
+                                        blocks=True, fighter=fighter_component, ai=ai_component)
+                else:
+                    # create a troll
+                    fighter_component = Fighter(hp=18, defense=1, power=randint(6, 8), xp=50,
+                                                death_function=monster_death, health_color=health_color)
+                    ai_component = BasicMonster()
+
+                    monster = GameObject(x, y, 'T', 'troll', colors.darker_green,
+                                        blocks=True, fighter=fighter_component, ai=ai_component)
+
+            elif dungeon_level > 5:
+                if randint(0, 100) < 60:  # 60% chance of getting an orc
+                    # create an orc
+                    fighter_component = Fighter(hp=12, defense=0, power=randint(4, 6), xp=20,
+                                                death_function=monster_death, health_color=health_color)
+                    ai_component = BasicMonster()
+
+                    monster = GameObject(x, y, 'o', 'orc', colors.desaturated_yellow,
+                                        blocks=True, fighter=fighter_component, ai=ai_component)
+                elif randint(0,100) < 80: #20% chance of getting a zombie
+                    # create a troll
+                    fighter_component = Fighter(hp=30, defense=2, power=randint(4, 7), xp=70,
+                                                death_function=monster_death, health_color=health_color)
+                    ai_component = BasicMonster()
+
+                    monster = GameObject(x, y, 'Z', 'zombie', colors.dark_green,
+                                        blocks=True, fighter=fighter_component, ai=ai_component)
+
+                else:
+                    # create a troll
+                    fighter_component = Fighter(hp=18, defense=1, power=randint(6, 8), xp=50,
+                                                death_function=monster_death, health_color=health_color)
+                    ai_component = BasicMonster()
+
+                    monster = GameObject(x, y, 'T', 'troll', colors.darker_green,
+                                        blocks=True, fighter=fighter_component, ai=ai_component)
 
             objects.append(monster)
 
@@ -519,18 +573,19 @@ def place_objects(room):
         if not is_blocked(x, y):
             dice = randint(0, 100)
             if dice < 60:
-                # create a health potion (40% chance)
+                # create a health potion (60% chance)
                 item_component = Item(use_function=cast_heal)
                 item = GameObject(x, y, '!', 'healing potion', colors.darker_red, item=item_component)
             elif dice < 60+10:
-                # create a lightning bolt scroll (20% chance)
+                # create a lightning bolt scroll (10% chance)
                 item_component = Item(use_function=cast_lightning)
                 item = GameObject(x, y, '#', 'scroll of lightning bolt', colors.light_cyan, item=item_component)
             elif dice < 60+10+10:
-                # create a confuse scroll (20% chance)
+                # create a confuse scroll (10% chance)
                 item_component = Item(use_function=cast_confuse)
                 item = GameObject(x, y, '#', 'scroll of confusion', colors.light_yellow, item=item_component)
             elif dice < 60+10+10+10+10:
+                # create a roulette potion (10% chance)
                 item_component = Item(use_function=cast_roulette)
                 item = GameObject(x, y, '%', 'roulette potion', colors.light_violet, item=item_component)
 
@@ -628,6 +683,8 @@ def render_all():
 
     panel.draw_str(1, 0, "Dungeon Level:" + ' ' + str(dungeon_level), bg=None, fg=colors.light_grey)
 
+    panel.draw_str(1, 5, "Turn Count:" + ' ' + str(turnCount), bg=None, fg=colors.light_grey)
+
     # display names of objects under the mouse
     panel.draw_str(1, 0, get_names_under_mouse(), bg=None, fg=colors.light_gray)
 
@@ -646,7 +703,6 @@ def message(new_msg, color=colors.white):
 
         # add the new line as a tuple, with the text and the color
         game_msgs.append((line, color))
-
 
 def player_move_or_attack(dx, dy):
     global fov_recompute
@@ -695,28 +751,16 @@ def handle_keys():
 
     if game_state == 'playing':
         # movement keys
-        if user_input.keychar == 'KP8':
+        if user_input.keychar == 'w':
             player_move_or_attack(0, -1)
 
-        elif user_input.keychar == 'KP7':
-            player_move_or_attack(-1, -1)
-
-        elif user_input.keychar == 'KP9':
-            player_move_or_attack(1, -1)
-
-        elif user_input.keychar == 'KP2':
+        elif user_input.keychar == 's':
             player_move_or_attack(0, 1)
 
-        elif user_input.keychar == 'KP4':
+        elif user_input.keychar == 'a':
             player_move_or_attack(-1, 0)
 
-        elif user_input.keychar == 'KP1':
-            player_move_or_attack(-1, 1)
-
-        elif user_input.keychar == 'KP3':
-            player_move_or_attack(1, 1)
-
-        elif user_input.keychar == 'KP6':
+        elif user_input.keychar == 'd':
             player_move_or_attack(1, 0)
 
         else:
@@ -730,7 +774,7 @@ def handle_keys():
                 chosen_item = inventory_menu('Press the key next to an item to use it, or any other to cancel.\n')
                 if chosen_item is not None:
                     chosen_item.use()
-            if user_input.keychar == 'd':
+            if user_input.keychar == 'x':
                 chosen_item = inventory_menu('Press the key next to an item to' +
                                              ' drop it, or any other to cancel.\n')
                 if chosen_item is not None:
@@ -741,9 +785,9 @@ def handle_keys():
             if user_input.keychar == 'c':
                 check_level_up()
                 level_up_xp = LEVEL_UP_BASE + player.level * LEVEL_UP_FACTOR
-                msgbox('Character Information\n\nLevel: ' + str(player.level) + "\nExperience: " +
-                       str(player.fighter.xp) + '\nExperience to level up: ' + str(level_up_xp) + '\n\nMaximum HP: ' +
-                       str(player.fighter.max_hp) + '\nAttack: ' + str(player.fighter.power) + '\nDefense: ' +
+                msgbox('Character Information\n Level: ' + str(player.level) + "\n Experience: " +
+                       str(player.fighter.xp) + '\n Experience to level up: ' + str(level_up_xp) + '\n Maximum HP: ' +
+                       str(player.fighter.max_hp) + '\n Attack: ' + str(player.fighter.power) + '\n Defense: ' +
                        str(player.fighter.defense), CHARACTER_SCREEN_WIDTH)
 
 def next_level():
@@ -766,6 +810,10 @@ def player_death(player):
     # for added effect, transform the player into a corpse!
     player.char = '%'
     player.color = colors.dark_red
+
+def health_color(monster):
+    monster.color = colors.light_red
+    message(monster.name.capitalize() + ' is weak! Keep fighting!')
 
 def monster_death(monster):
     # transform it into a nasty corpse! it doesn't block, can't be
@@ -872,7 +920,7 @@ def initialize_fov():
     con.clear()
 
 def play_game():
-    global key, mouse, object
+    global key, mouse, object, turnCount
 
     player_action = None
 
@@ -886,6 +934,8 @@ def play_game():
         for object in objects:
             object.clear()
 
+        turnCount = 0
+        turnCount+=1
         player_action = handle = handle_keys()
         if player_action == 'exit':
             save_game()
@@ -956,9 +1006,9 @@ def check_level_up():
         choice = None
         while choice == None:
             choice = menu('Level up! Choose a stat to raise:\n',
-                          ['Constitution (+20 HP, from ' + str(player.fighter.max_hp) + ')',
-                           'Strength (+1 attack, from ' + str(player.fighter.power) + ')',
-                           'Agility (+1 defense, from ' + str(player.fighter.defense) + ')'], LEVEL_SCREEN_WIDTH)
+                          ['\nConstitution (+20 HP, from ' + str(player.fighter.max_hp) + ')',
+                           '\nStrength (+1 attack, from ' + str(player.fighter.power) + ')',
+                           '\nAgility (+1 defense, from ' + str(player.fighter.defense) + ')'], LEVEL_SCREEN_WIDTH)
 
         if choice == 0:
             player.fighter.max_hp += 20
