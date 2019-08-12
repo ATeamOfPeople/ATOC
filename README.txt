@@ -1,10 +1,9 @@
 yo waddup this is rus, i wrote this. its lit.
-controls are somethin like keypad to move, 'g' to pick up stuff, 'i' for inventory, 'esc' to get outta menus n shit.
+controls are somethin like wasd to move, 'g' to pick up stuff, 'i' for inventory, 'esc' to get outta menus n stuff.
 press the corresponding letter to an item while in your inventory to use said item.
 
 <<<<<<< HEAD
-This is a pre-alpha roguelike. very very pre alpha. It's currently broken
-and I can't figure out why :(.
+This is a pre-alpha roguelike. very very pre alpha.
 
 Originally developed alongside of a guide, but has quickly turned into
 a creation of my own.
@@ -20,7 +19,8 @@ would deal 4 damage to the Player, but the Player would only take 2 DMG
 becase the Player's Defence blocks 2 Power. Not a very original system,
 but it will do for now.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+EVERYTHING BELOW THIS IS OUTDATED AND POTENTIALLY UNRELIABLE INFO,
+BUT IT COULD ALSO BE RIGHT.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Mobs:
 	Player:
